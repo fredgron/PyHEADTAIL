@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import c
+from scipy.constants import c, e
 
 from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.particles import generators
@@ -639,49 +639,32 @@ class Linac(Element):
 
         else:
             raise NotImplementedError("Something wrong with longitudinal_mode")
+        
+class Energy_update(object):
+    def __init__(self, new_energy):
+        self.new_energy = new_energy
+    
+    def track(self, beam):
+        new_p0 = np.sqrt(self.new_energy*self.new_energy-beam.mass*beam.mass*c**4)/c
+        new_gamma = self.new_energy / beam.mass / c**2
+        new_beta = np.sqrt(1 - new_gamma**-2)
 
+        geo_emit_factor = np.sqrt(beam.beta*beam.gamma/new_beta/new_gamma)
 
-""" The below doesn't work well... this we need to think of how to do it
-properly. It does not seem to be a common problem in any case.
+        beam.x *= geo_emit_factor
+        beam.xp *= geo_emit_factor
+        beam.y *= geo_emit_factor
+        beam.yp *= geo_emit_factor
+        
+        beam.p0 = new_p0
 
+    def install_energy_segements(self, one_turn_map, energy_list, ecloud_seg):
+        new_one_turn_map = []
 
-@deprecated('--> "BasicSynchrotron" will be removed '
-            'in the near future. Use "Synchrotron" instead.\n')
-class BasicSynchrotron(Synchrotron):
-    pass
-"""
+        for i_seg, transverse_seg in enumerate(one_turn_map):
+            new_energy = energy_list['beam_energy'][i_seg+1] * 1e9 * e
+            new_one_turn_map.append(transverse_seg)
+            new_one_turn_map.append(Energy_update(new_energy))
+            new_one_turn_map.append(ecloud_seg)
 
-# @deprecated_class('--> "BasicSynchrotron" will be removed '
-#             'in the near future. Use "Synchrotron" instead.\n')
-# class BasicSynchrotron(Synchrotron):
-#     pass
-
-# class BasicSynchrotron(Synchrotron):
-#     @deprecated('"--> BasicSynchrotron" will be deprecated ' +
-#                 'in the near future. Use "Synchrotron" instead.\n')
-#     def __init__(self, *args, **kwargs):
-#         Synchrotron.__init__(self, *args, **kwargs)
-
-
-# @deprecated('--> "BasicSynchrotron" will be removed '
-#             'in the near future. Use "Synchrotron" instead.\n')
-# def BasicSynchrotron(*args, **kwargs):
-#     return Synchrotron(*args, **kwargs)
-
-
-import warnings
-
-
-class BasicSynchrotron(Synchrotron):
-    def __init__(self, *args, **kwargs):
-
-        warnings.simplefilter("always", DeprecationWarning)
-        warnings.warn(
-            '\n\n*** DEPRECATED: "BasicSynchrotron" will be replaced in a future '
-            'PyHEADTAIL release! You may want to use "Synchrotron" instead.',
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        warnings.simplefilter("default", DeprecationWarning)
-
-        Synchrotron.__init__(self, *args, **kwargs)
+        return new_one_turn_map        
