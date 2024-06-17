@@ -658,7 +658,7 @@ class Energy_update(object):
         
         beam.p0 = new_p0
 
-    def install_energy_segements(self, one_turn_map, energy_list, ecloud_seg):
+    def install_energy_segements(one_turn_map, energy_list, ecloud_seg):
         new_one_turn_map = []
 
         for i_seg, transverse_seg in enumerate(one_turn_map):
